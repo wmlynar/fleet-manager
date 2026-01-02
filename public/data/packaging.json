@@ -1,0 +1,345 @@
+{
+  "goodsTypes": ["BOX", "EUR_PAL", "PRODUCT", "WASTE", "EMPTY", "AUX"],
+  "goodsGroups": {
+    "packaging": ["BOX", "EUR_PAL"],
+    "return": ["BOX", "EUR_PAL"],
+    "aux": ["AUX"],
+    "output": ["PRODUCT"],
+    "waste": ["WASTE"],
+    "empty": ["EMPTY"]
+  },
+  "operations": {
+    "bufferDefaults": {
+      "BOX": {
+        "levels": {
+          "1": {
+            "load": {
+              "operation": "ForkLoad",
+              "start_height": 0.2,
+              "rec_height": 0.2,
+              "end_height": 0.4,
+              "recfile": "plt/sanden_template_box.plt",
+              "recognize": true
+            },
+            "unload": {
+              "operation": "ForkUnload",
+              "start_height": 0.4,
+              "end_height": 0.2,
+              "recognize": false
+            }
+          },
+          "2": {
+            "load": {
+              "operation": "ForkLoad",
+              "start_height": 0.5,
+              "rec_height": 0.5,
+              "end_height": 0.7,
+              "recfile": "plt/sanden_template_box.plt",
+              "recognize": true
+            },
+            "unload": {
+              "operation": "ForkUnload",
+              "start_height": 0.7,
+              "end_height": 0.5,
+              "recognize": false
+            }
+          },
+          "3": {
+            "load": {
+              "operation": "ForkLoad",
+              "start_height": 0.8,
+              "rec_height": 0.8,
+              "end_height": 1.0,
+              "recfile": "plt/sanden_template_box.plt",
+              "recognize": true
+            },
+            "unload": {
+              "operation": "ForkUnload",
+              "start_height": 1.0,
+              "end_height": 0.8,
+              "recognize": false
+            }
+          }
+        }
+      },
+      "EUR_PAL": {
+        "levels": {
+          "1": {
+            "load": {
+              "operation": "ForkLoad",
+              "start_height": 0.27,
+              "rec_height": 0.27,
+              "end_height": 0.4,
+              "recfile": "plt/sanden_template_120.plt",
+              "recognize": true
+            },
+            "unload": {
+              "operation": "ForkUnload",
+              "start_height": 0.4,
+              "end_height": 0.27,
+              "recognize": false
+            }
+          },
+          "2": {
+            "load": {
+              "operation": "ForkLoad",
+              "start_height": 0.6,
+              "rec_height": 0.6,
+              "end_height": 0.75,
+              "recfile": "plt/sanden_template_120.plt",
+              "recognize": true
+            },
+            "unload": {
+              "operation": "ForkUnload",
+              "start_height": 0.75,
+              "end_height": 0.6,
+              "recognize": false
+            }
+          },
+          "3": {
+            "load": {
+              "operation": "ForkLoad",
+              "start_height": 0.9,
+              "rec_height": 0.9,
+              "end_height": 1.05,
+              "recfile": "plt/sanden_template_120.plt",
+              "recognize": true
+            },
+            "unload": {
+              "operation": "ForkUnload",
+              "start_height": 1.05,
+              "end_height": 0.9,
+              "recognize": false
+            }
+          }
+        }
+      }
+    },
+    "placeDefaults": {
+      "BOX": {
+        "load": {
+          "operation": "ForkLoad",
+          "start_height": 0.2,
+          "rec_height": 0.2,
+          "end_height": 0.4,
+          "recfile": "plt/sanden_template_box.plt",
+          "recognize": true
+        },
+        "unload": {
+          "operation": "ForkUnload",
+          "start_height": 0.4,
+          "end_height": 0.2,
+          "recognize": false
+        }
+      },
+      "EUR_PAL": {
+        "load": {
+          "operation": "ForkLoad",
+          "start_height": 0.27,
+          "rec_height": 0.27,
+          "end_height": 0.4,
+          "recfile": "plt/sanden_template_120.plt",
+          "recognize": true
+        },
+        "unload": {
+          "operation": "ForkUnload",
+          "start_height": 0.4,
+          "end_height": 0.27,
+          "recognize": false
+        }
+      }
+    }
+  },
+  "buffers": [
+    {
+      "id": "MAG_A1_SUP_TMP",
+      "name": "Bufor A1 (opakowania)",
+      "maxStack": 3,
+      "allowedGoods": ["BOX", "EUR_PAL"],
+      "opsByGoods": {},
+      "lanes": [
+        {
+          "id": "L1",
+          "slots": [
+            { "id": "A1-L1-D1", "point": "AP54" },
+            { "id": "A1-L1-D2", "point": "AP57" },
+            { "id": "A1-L1-D3", "point": "AP53" },
+            { "id": "A1-L1-D4", "point": "AP58" }
+          ]
+        },
+        {
+          "id": "L2",
+          "slots": [
+            { "id": "A1-L2-D1", "point": "AP63" },
+            { "id": "A1-L2-D2", "point": "AP65" },
+            { "id": "A1-L2-D3", "point": "AP68" },
+            { "id": "A1-L2-D4", "point": "AP81" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "MAG_A2_SUP_TMP",
+      "name": "Bufor A2 (opakowania)",
+      "maxStack": 3,
+      "allowedGoods": ["BOX", "EUR_PAL"],
+      "opsByGoods": {},
+      "lanes": [
+        {
+          "id": "L1",
+          "slots": [
+            { "id": "A2-L1-D1", "point": "AP89" },
+            { "id": "A2-L1-D2", "point": "AP45" },
+            { "id": "A2-L1-D3", "point": "AP86" },
+            { "id": "A2-L1-D4", "point": "AP83" }
+          ]
+        },
+        {
+          "id": "L2",
+          "slots": [
+            { "id": "A2-L2-D1", "point": "AP80" },
+            { "id": "A2-L2-D2", "point": "AP75" },
+            { "id": "A2-L2-D3", "point": "AP72" },
+            { "id": "A2-L2-D4", "point": "AP69" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "MAG_G1_SUP",
+      "name": "Bufor G1 (materialy dodatkowe)",
+      "maxStack": 1,
+      "allowedGoods": ["AUX"],
+      "opsByGoods": {},
+      "lanes": [
+        {
+          "id": "L1",
+          "slots": [
+            { "id": "G1-L1-D1", "point": "AP117" },
+            { "id": "G1-L1-D2", "point": "AP116" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "MAG_G2_SUP",
+      "name": "Bufor G2 (materialy dodatkowe)",
+      "maxStack": 1,
+      "allowedGoods": ["AUX"],
+      "opsByGoods": {},
+      "lanes": [
+        {
+          "id": "L1",
+          "slots": [
+            { "id": "G2-L1-D1", "point": "AP115" },
+            { "id": "G2-L1-D2", "point": "AP114" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "MAG_OUT_COLLECT_TMP",
+      "name": "Bufor odbiorow z produkcji",
+      "maxStack": 1,
+      "allowedGoods": ["PRODUCT", "WASTE", "EMPTY", "BOX", "EUR_PAL"],
+      "opsByGoods": {},
+      "lanes": [
+        {
+          "id": "L1",
+          "slots": [
+            { "id": "OUT-L1-D1", "point": "AP20" },
+            { "id": "OUT-L1-D2", "point": "AP38" },
+            { "id": "OUT-L1-D3", "point": "AP21" },
+            { "id": "OUT-L1-D4", "point": "AP39" }
+          ]
+        }
+      ]
+    }
+  ],
+  "places": {
+    "A1_IN": { "name": "A1_IN", "point": "AP22", "opsByGoods": {} },
+    "A2_IN": { "name": "A2_IN", "point": "AP23", "opsByGoods": {} },
+    "A1_OUT": { "name": "A1_OUT", "point": "AP24", "opsByGoods": {} },
+    "A2_OUT": { "name": "A2_OUT", "point": "AP27", "opsByGoods": {} },
+    "C1": { "name": "C1", "point": "AP28", "opsByGoods": {} },
+    "C2": { "name": "C2", "point": "AP40", "opsByGoods": {} },
+    "G1": { "name": "G1", "point": "AP41", "opsByGoods": {} },
+    "G2": { "name": "G2", "point": "AP42", "opsByGoods": {} }
+  },
+  "lines": [
+    {
+      "id": "A1",
+      "name": "Linia A1",
+      "supplyBuffer": "MAG_A1_SUP_TMP",
+      "supplyPoint": "A1_IN",
+      "outputPoint": "A1_OUT",
+      "returnPoint": "A1_IN",
+      "wastePoint": "C1",
+      "auxBuffer": "MAG_G1_SUP",
+      "auxPoint": "G1"
+    },
+    {
+      "id": "A2",
+      "name": "Linia A2",
+      "supplyBuffer": "MAG_A2_SUP_TMP",
+      "supplyPoint": "A2_IN",
+      "outputPoint": "A2_OUT",
+      "returnPoint": "A2_IN",
+      "wastePoint": "C2",
+      "auxBuffer": "MAG_G2_SUP",
+      "auxPoint": "G2"
+    }
+  ],
+  "streams": [
+    {
+      "id": "S1",
+      "name": "Dostawa opakowan",
+      "trigger": "supply",
+      "goodsTypeMode": "line",
+      "routes": [
+        { "lineId": "A1", "fromBuffer": "MAG_A1_SUP_TMP", "toPlace": "A1_IN" },
+        { "lineId": "A2", "fromBuffer": "MAG_A2_SUP_TMP", "toPlace": "A2_IN" }
+      ]
+    },
+    {
+      "id": "S2",
+      "name": "Materialy dodatkowe",
+      "trigger": "aux",
+      "goodsType": "AUX",
+      "routes": [
+        { "lineId": "A1", "fromBuffer": "MAG_G1_SUP", "toPlace": "G1" },
+        { "lineId": "A2", "fromBuffer": "MAG_G2_SUP", "toPlace": "G2" }
+      ]
+    },
+    {
+      "id": "S3",
+      "name": "Odbior wyrobow gotowych",
+      "trigger": "output",
+      "goodsType": "PRODUCT",
+      "routes": [
+        { "lineId": "A1", "fromPlace": "A1_OUT", "toBuffer": "MAG_OUT_COLLECT_TMP" },
+        { "lineId": "A2", "fromPlace": "A2_OUT", "toBuffer": "MAG_OUT_COLLECT_TMP" }
+      ]
+    },
+    {
+      "id": "S4",
+      "name": "Odbior odpadow z montazu",
+      "trigger": "waste",
+      "goodsType": "WASTE",
+      "routes": [
+        { "lineId": "A1", "fromPlace": "C1", "toBuffer": "MAG_OUT_COLLECT_TMP" },
+        { "lineId": "A2", "fromPlace": "C2", "toBuffer": "MAG_OUT_COLLECT_TMP" }
+      ]
+    },
+    {
+      "id": "S5",
+      "name": "Zwrot pustych opakowan",
+      "trigger": "return",
+      "goodsTypeMode": "line",
+      "routes": [
+        { "lineId": "A1", "fromPlace": "A1_IN", "toBuffer": "MAG_OUT_COLLECT_TMP" },
+        { "lineId": "A2", "fromPlace": "A2_IN", "toBuffer": "MAG_OUT_COLLECT_TMP" }
+      ]
+    }
+  ]
+}

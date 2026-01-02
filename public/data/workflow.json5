@@ -1,0 +1,951 @@
+{
+  "map": {
+    "name": "20251203191014177_nowy_styl_5_po_poprawieniu_korlet",
+    "version": "1.0.6",
+    "source": "/home/inovatica/seal/rds/nowy-styl-map/20251203191014177_nowy_styl_5_po_poprawieniu_korlet.smap"
+  },
+  "groups": {
+    "DROP-GROUP-01": [
+      "AP20",
+      "AP38"
+    ],
+    "DROP-GROUP-02": [
+      "AP21",
+      "AP39"
+    ],
+    "DROP-GROUP-03": [
+      "AP22",
+      "AP40"
+    ],
+    "DROP-GROUP-04": [
+      "AP23",
+      "AP41"
+    ],
+    "DROP-GROUP-05": [
+      "AP24",
+      "AP42"
+    ],
+    "DROP-GROUP-06": [
+      "AP27",
+      "AP43"
+    ],
+    "DROP-GROUP-07": [
+      "AP28",
+      "AP44"
+    ],
+    "PICK-GROUP": [
+      "AP54",
+      "AP57",
+      "AP53",
+      "AP58",
+      "AP63",
+      "AP65",
+      "AP68",
+      "AP81",
+      "AP89",
+      "AP45",
+      "AP86",
+      "AP83",
+      "AP80",
+      "AP75",
+      "AP72",
+      "AP69",
+      "AP117",
+      "AP116",
+      "AP115",
+      "AP114",
+      "AP113",
+      "AP112",
+      "AP111",
+      "AP110",
+      "AP109",
+      "AP108",
+      "AP107",
+      "AP106",
+      "AP105",
+      "AP104",
+      "AP103",
+      "AP102"
+    ]
+  },
+  "bin_locations": {
+    "DROP-01": {
+      "group": "DROP-GROUP-01",
+      "point": "AP20",
+      "pos": {
+        "x": -154.095,
+        "y": -47.175
+      }
+    },
+    "DROP-02": {
+      "group": "DROP-GROUP-01",
+      "point": "AP38",
+      "pos": {
+        "x": -154.881,
+        "y": -47.175
+      }
+    },
+    "DROP-03": {
+      "group": "DROP-GROUP-02",
+      "point": "AP21",
+      "pos": {
+        "x": -154.095,
+        "y": -44.718
+      }
+    },
+    "DROP-04": {
+      "group": "DROP-GROUP-02",
+      "point": "AP39",
+      "pos": {
+        "x": -154.881,
+        "y": -44.718
+      }
+    },
+    "DROP-05": {
+      "group": "DROP-GROUP-03",
+      "point": "AP22",
+      "pos": {
+        "x": -154.095,
+        "y": -43.497
+      }
+    },
+    "DROP-06": {
+      "group": "DROP-GROUP-03",
+      "point": "AP40",
+      "pos": {
+        "x": -154.881,
+        "y": -43.497
+      }
+    },
+    "DROP-07": {
+      "group": "DROP-GROUP-04",
+      "point": "AP23",
+      "pos": {
+        "x": -154.095,
+        "y": -42.282
+      }
+    },
+    "DROP-08": {
+      "group": "DROP-GROUP-04",
+      "point": "AP41",
+      "pos": {
+        "x": -154.881,
+        "y": -42.282
+      }
+    },
+    "DROP-09": {
+      "group": "DROP-GROUP-05",
+      "point": "AP24",
+      "pos": {
+        "x": -154.095,
+        "y": -41.071
+      }
+    },
+    "DROP-10": {
+      "group": "DROP-GROUP-05",
+      "point": "AP42",
+      "pos": {
+        "x": -154.881,
+        "y": -41.071
+      }
+    },
+    "DROP-11": {
+      "group": "DROP-GROUP-06",
+      "point": "AP27",
+      "pos": {
+        "x": -154.095,
+        "y": -36.174
+      }
+    },
+    "DROP-12": {
+      "group": "DROP-GROUP-06",
+      "point": "AP43",
+      "pos": {
+        "x": -154.881,
+        "y": -36.174
+      }
+    },
+    "DROP-13": {
+      "group": "DROP-GROUP-07",
+      "point": "AP28",
+      "pos": {
+        "x": -154.095,
+        "y": -34.95
+      }
+    },
+    "DROP-14": {
+      "group": "DROP-GROUP-07",
+      "point": "AP44",
+      "pos": {
+        "x": -154.881,
+        "y": -34.95
+      }
+    },
+    "PICK-01": {
+      "group": "PICK-GROUP",
+      "point": "AP54",
+      "pos": {
+        "x": -12.93,
+        "y": 6.408
+      }
+    },
+    "PICK-02": {
+      "group": "PICK-GROUP",
+      "point": "AP57",
+      "pos": {
+        "x": -11.835,
+        "y": 6.408
+      }
+    },
+    "PICK-03": {
+      "group": "PICK-GROUP",
+      "point": "AP53",
+      "pos": {
+        "x": -10.897,
+        "y": 6.408
+      }
+    },
+    "PICK-04": {
+      "group": "PICK-GROUP",
+      "point": "AP58",
+      "pos": {
+        "x": -9.801,
+        "y": 6.408
+      }
+    },
+    "PICK-05": {
+      "group": "PICK-GROUP",
+      "point": "AP63",
+      "pos": {
+        "x": -8.929,
+        "y": 6.408
+      }
+    },
+    "PICK-06": {
+      "group": "PICK-GROUP",
+      "point": "AP65",
+      "pos": {
+        "x": -7.828,
+        "y": 6.408
+      }
+    },
+    "PICK-07": {
+      "group": "PICK-GROUP",
+      "point": "AP68",
+      "pos": {
+        "x": -6.948,
+        "y": 6.408
+      }
+    },
+    "PICK-08": {
+      "group": "PICK-GROUP",
+      "point": "AP81",
+      "pos": {
+        "x": -5.847,
+        "y": 6.408
+      }
+    },
+    "PICK-09": {
+      "group": "PICK-GROUP",
+      "point": "AP89",
+      "pos": {
+        "x": -2.638,
+        "y": 6.408
+      }
+    },
+    "PICK-10": {
+      "group": "PICK-GROUP",
+      "point": "AP45",
+      "pos": {
+        "x": -1.15,
+        "y": 6.401
+      }
+    },
+    "PICK-11": {
+      "group": "PICK-GROUP",
+      "point": "AP86",
+      "pos": {
+        "x": 0.319,
+        "y": 6.408
+      }
+    },
+    "PICK-12": {
+      "group": "PICK-GROUP",
+      "point": "AP83",
+      "pos": {
+        "x": 1.867,
+        "y": 6.408
+      }
+    },
+    "PICK-13": {
+      "group": "PICK-GROUP",
+      "point": "AP80",
+      "pos": {
+        "x": 3.36,
+        "y": 6.408
+      }
+    },
+    "PICK-14": {
+      "group": "PICK-GROUP",
+      "point": "AP75",
+      "pos": {
+        "x": 4.853,
+        "y": 6.408
+      }
+    },
+    "PICK-15": {
+      "group": "PICK-GROUP",
+      "point": "AP72",
+      "pos": {
+        "x": 6.346,
+        "y": 6.408
+      }
+    },
+    "PICK-16": {
+      "group": "PICK-GROUP",
+      "point": "AP69",
+      "pos": {
+        "x": 7.821,
+        "y": 6.404
+      }
+    },
+    "PICK-51": {
+      "group": "PICK-GROUP",
+      "point": "AP117",
+      "pos": {
+        "x": -13.125,
+        "y": -5.709
+      }
+    },
+    "PICK-52": {
+      "group": "PICK-GROUP",
+      "point": "AP116",
+      "pos": {
+        "x": -12.05,
+        "y": -5.719
+      }
+    },
+    "PICK-53": {
+      "group": "PICK-GROUP",
+      "point": "AP115",
+      "pos": {
+        "x": -11.168,
+        "y": -5.735
+      }
+    },
+    "PICK-54": {
+      "group": "PICK-GROUP",
+      "point": "AP114",
+      "pos": {
+        "x": -10.097,
+        "y": -5.727
+      }
+    },
+    "PICK-55": {
+      "group": "PICK-GROUP",
+      "point": "AP113",
+      "pos": {
+        "x": -9.133,
+        "y": -5.719
+      }
+    },
+    "PICK-56": {
+      "group": "PICK-GROUP",
+      "point": "AP112",
+      "pos": {
+        "x": -8.083,
+        "y": -5.736
+      }
+    },
+    "PICK-57": {
+      "group": "PICK-GROUP",
+      "point": "AP111",
+      "pos": {
+        "x": -7.121,
+        "y": -5.722
+      }
+    },
+    "PICK-58": {
+      "group": "PICK-GROUP",
+      "point": "AP110",
+      "pos": {
+        "x": -6.037,
+        "y": -5.73
+      }
+    },
+    "PICK-59": {
+      "group": "PICK-GROUP",
+      "point": "AP109",
+      "pos": {
+        "x": -3.176,
+        "y": -5.724
+      }
+    },
+    "PICK-60": {
+      "group": "PICK-GROUP",
+      "point": "AP108",
+      "pos": {
+        "x": -1.683,
+        "y": -5.728
+      }
+    },
+    "PICK-61": {
+      "group": "PICK-GROUP",
+      "point": "AP107",
+      "pos": {
+        "x": -0.203,
+        "y": -5.71
+      }
+    },
+    "PICK-62": {
+      "group": "PICK-GROUP",
+      "point": "AP106",
+      "pos": {
+        "x": 1.324,
+        "y": -5.725
+      }
+    },
+    "PICK-63": {
+      "group": "PICK-GROUP",
+      "point": "AP105",
+      "pos": {
+        "x": 2.807,
+        "y": -5.72
+      }
+    },
+    "PICK-64": {
+      "group": "PICK-GROUP",
+      "point": "AP104",
+      "pos": {
+        "x": 4.392,
+        "y": -5.732
+      }
+    },
+    "PICK-65": {
+      "group": "PICK-GROUP",
+      "point": "AP103",
+      "pos": {
+        "x": 5.847,
+        "y": -5.73
+      }
+    },
+    "PICK-66": {
+      "group": "PICK-GROUP",
+      "point": "AP102",
+      "pos": {
+        "x": 7.343,
+        "y": -5.714
+      }
+    }
+  },
+  "action_points": [
+    {
+      "id": "AP102",
+      "pos": {
+        "x": 7.343,
+        "y": -3.714
+      },
+      "props": {
+        "spin": false
+      }
+    },
+    {
+      "id": "AP103",
+      "pos": {
+        "x": 5.847,
+        "y": -3.73
+      },
+      "props": {
+        "spin": false
+      }
+    },
+    {
+      "id": "AP104",
+      "pos": {
+        "x": 4.392,
+        "y": -3.732
+      },
+      "props": {
+        "spin": false
+      }
+    },
+    {
+      "id": "AP105",
+      "pos": {
+        "x": 2.807,
+        "y": -3.72
+      },
+      "props": {
+        "spin": false
+      }
+    },
+    {
+      "id": "AP106",
+      "pos": {
+        "x": 1.324,
+        "y": -3.725
+      },
+      "props": {
+        "spin": false
+      }
+    },
+    {
+      "id": "AP107",
+      "pos": {
+        "x": -0.203,
+        "y": -3.71
+      },
+      "props": {
+        "spin": false
+      }
+    },
+    {
+      "id": "AP108",
+      "pos": {
+        "x": -1.683,
+        "y": -3.728
+      },
+      "props": {
+        "spin": false
+      }
+    },
+    {
+      "id": "AP109",
+      "pos": {
+        "x": -3.176,
+        "y": -3.724
+      },
+      "props": {
+        "spin": false
+      }
+    },
+    {
+      "id": "AP110",
+      "pos": {
+        "x": -6.037,
+        "y": -3.73
+      },
+      "props": {
+        "spin": false
+      }
+    },
+    {
+      "id": "AP111",
+      "pos": {
+        "x": -7.121,
+        "y": -3.722
+      },
+      "props": {
+        "spin": false
+      }
+    },
+    {
+      "id": "AP112",
+      "pos": {
+        "x": -8.083,
+        "y": -3.736
+      },
+      "props": {
+        "spin": false
+      }
+    },
+    {
+      "id": "AP113",
+      "pos": {
+        "x": -9.133,
+        "y": -3.719
+      },
+      "props": {
+        "spin": false
+      }
+    },
+    {
+      "id": "AP114",
+      "pos": {
+        "x": -10.097,
+        "y": -3.727
+      },
+      "props": {
+        "spin": false
+      }
+    },
+    {
+      "id": "AP115",
+      "pos": {
+        "x": -11.168,
+        "y": -3.735
+      },
+      "props": {
+        "spin": false
+      }
+    },
+    {
+      "id": "AP116",
+      "pos": {
+        "x": -12.05,
+        "y": -3.719
+      },
+      "props": {
+        "spin": false
+      }
+    },
+    {
+      "id": "AP117",
+      "pos": {
+        "x": -13.125,
+        "y": -3.709
+      },
+      "props": {
+        "spin": false
+      }
+    },
+    {
+      "id": "AP20",
+      "pos": {
+        "x": -149.254,
+        "y": -47.475
+      },
+      "props": {
+        "spin": false
+      }
+    },
+    {
+      "id": "AP21",
+      "pos": {
+        "x": -149.254,
+        "y": -45.018
+      },
+      "props": {
+        "spin": false
+      }
+    },
+    {
+      "id": "AP22",
+      "pos": {
+        "x": -149.254,
+        "y": -43.797
+      },
+      "props": {
+        "spin": false
+      }
+    },
+    {
+      "id": "AP23",
+      "pos": {
+        "x": -149.254,
+        "y": -42.582
+      },
+      "props": {
+        "spin": false
+      }
+    },
+    {
+      "id": "AP24",
+      "pos": {
+        "x": -149.254,
+        "y": -41.371
+      },
+      "props": {
+        "spin": false
+      }
+    },
+    {
+      "id": "AP27",
+      "pos": {
+        "x": -149.254,
+        "y": -36.474
+      },
+      "props": {
+        "spin": false
+      }
+    },
+    {
+      "id": "AP28",
+      "pos": {
+        "x": -149.254,
+        "y": -35.25
+      },
+      "props": {
+        "spin": false
+      }
+    },
+    {
+      "id": "AP38",
+      "pos": {
+        "x": -151.946,
+        "y": -47.475
+      },
+      "props": {
+        "spin": false
+      }
+    },
+    {
+      "id": "AP39",
+      "pos": {
+        "x": -151.946,
+        "y": -45.018
+      },
+      "props": {
+        "spin": false
+      }
+    },
+    {
+      "id": "AP40",
+      "pos": {
+        "x": -151.946,
+        "y": -43.797
+      },
+      "props": {
+        "spin": false
+      }
+    },
+    {
+      "id": "AP41",
+      "pos": {
+        "x": -151.946,
+        "y": -42.582
+      },
+      "props": {
+        "spin": false
+      }
+    },
+    {
+      "id": "AP42",
+      "pos": {
+        "x": -151.946,
+        "y": -41.371
+      },
+      "props": {
+        "spin": false
+      }
+    },
+    {
+      "id": "AP43",
+      "pos": {
+        "x": -151.946,
+        "y": -36.474
+      },
+      "props": {
+        "spin": false
+      }
+    },
+    {
+      "id": "AP44",
+      "pos": {
+        "x": -151.946,
+        "y": -35.25
+      },
+      "props": {
+        "spin": false
+      }
+    },
+    {
+      "id": "AP45",
+      "pos": {
+        "x": -1.15,
+        "y": 4.051
+      },
+      "props": {
+        "prepoint": "LM48",
+        "spin": false
+      }
+    },
+    {
+      "id": "AP53",
+      "pos": {
+        "x": -10.897,
+        "y": 4.058
+      },
+      "props": {
+        "spin": false
+      }
+    },
+    {
+      "id": "AP54",
+      "pos": {
+        "x": -12.93,
+        "y": 4.058
+      },
+      "props": {
+        "spin": false
+      }
+    },
+    {
+      "id": "AP57",
+      "pos": {
+        "x": -11.835,
+        "y": 4.058
+      },
+      "props": {
+        "spin": false
+      }
+    },
+    {
+      "id": "AP58",
+      "pos": {
+        "x": -9.801,
+        "y": 4.058
+      },
+      "props": {
+        "spin": false
+      }
+    },
+    {
+      "id": "AP63",
+      "pos": {
+        "x": -8.929,
+        "y": 4.058
+      },
+      "props": {
+        "spin": false
+      }
+    },
+    {
+      "id": "AP65",
+      "pos": {
+        "x": -7.828,
+        "y": 4.058
+      },
+      "props": {
+        "spin": false
+      }
+    },
+    {
+      "id": "AP68",
+      "pos": {
+        "x": -6.948,
+        "y": 4.058
+      },
+      "props": {
+        "spin": false
+      }
+    },
+    {
+      "id": "AP69",
+      "pos": {
+        "x": 7.821,
+        "y": 4.054
+      },
+      "props": {
+        "spin": false
+      }
+    },
+    {
+      "id": "AP72",
+      "pos": {
+        "x": 6.346,
+        "y": 4.058
+      },
+      "props": {
+        "spin": false
+      }
+    },
+    {
+      "id": "AP75",
+      "pos": {
+        "x": 4.853,
+        "y": 4.058
+      },
+      "props": {
+        "spin": false
+      }
+    },
+    {
+      "id": "AP80",
+      "pos": {
+        "x": 3.36,
+        "y": 4.058
+      },
+      "props": {
+        "spin": false
+      }
+    },
+    {
+      "id": "AP81",
+      "pos": {
+        "x": -5.847,
+        "y": 4.058
+      },
+      "props": {
+        "spin": false
+      }
+    },
+    {
+      "id": "AP83",
+      "pos": {
+        "x": 1.867,
+        "y": 4.058
+      },
+      "props": {
+        "spin": false
+      }
+    },
+    {
+      "id": "AP86",
+      "pos": {
+        "x": 0.319,
+        "y": 4.058
+      },
+      "props": {
+        "spin": false
+      }
+    },
+    {
+      "id": "AP89",
+      "pos": {
+        "x": -2.638,
+        "y": 4.058
+      },
+      "props": {
+        "spin": false
+      }
+    }
+  ],
+  "occupancy": {
+    "source": "sensor",
+    "pick_groups": [
+      "PICK-GROUP"
+    ],
+    "drop_groups": [
+      "DROP-GROUP-01",
+      "DROP-GROUP-02",
+      "DROP-GROUP-03",
+      "DROP-GROUP-04",
+      "DROP-GROUP-05",
+      "DROP-GROUP-06",
+      "DROP-GROUP-07"
+    ]
+  },
+  "streams": [
+    {
+      "id": "stream_1",
+      "pick_group": "PICK-GROUP",
+      "drop_group_order": [
+        "DROP-GROUP-01",
+        "DROP-GROUP-02",
+        "DROP-GROUP-03",
+        "DROP-GROUP-04",
+        "DROP-GROUP-05",
+        "DROP-GROUP-06",
+        "DROP-GROUP-07"
+      ],
+      "notes": "Single stream: pick from occupied pick_group, drop to first available slot with preceding slots empty.",
+      "pick_policy": {
+        "selection": "occupied_only"
+      },
+      "drop_policy": {
+        "selection": "first_available_in_order",
+        "access_rule": "preceding_empty",
+        "commit_distance_m": 8
+      }
+    }
+  ],
+  "buffer_group": "BUFFER",
+  "thresholds": {
+    "heartbeat_timeout_s": 5,
+    "no_progress_timeout_s": 20,
+    "blocked_retry_limit": 3,
+    "charge_target_pct": 85,
+    "commit_distance_m": 8
+  }
+}

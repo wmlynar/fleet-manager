@@ -1,0 +1,16 @@
+{
+  "name": "fleet-manager",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Fleet manager MVP UI",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "e2e-spec": "node scripts/e2e-spec.js",
+    "e2e-ui": "node scripts/e2e-ui.js",
+    "e2e": "node scripts/e2e-spec.js && node scripts/e2e-ui.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2"
+  }
+}

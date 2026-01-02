@@ -1,0 +1,272 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Fleet Manager</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="ambient-glow"></div>
+
+    <main class="shell">
+      <section id="login-view" class="login-card">
+        <div class="brand">
+          <div class="brand-mark"></div>
+          <div>
+            <p class="brand-title">Fleet Manager</p>
+            <p class="brand-subtitle">MVP console</p>
+          </div>
+        </div>
+        <form id="login-form" class="login-form">
+          <label class="field">
+            <span>Uzytkownik</span>
+            <input id="login-user" type="text" autocomplete="username" />
+          </label>
+          <label class="field">
+            <span>Haslo</span>
+            <input id="login-pass" type="password" autocomplete="current-password" />
+          </label>
+          <button class="primary-btn" type="submit">Zaloguj</button>
+          <p id="login-error" class="error-text hidden">Nieprawidlowe dane.</p>
+        </form>
+      </section>
+
+      <section id="app-view" class="app hidden">
+        <aside class="sidebar">
+          <div class="sidebar-header">
+            <div class="brand-mark small"></div>
+            <div>
+              <p class="brand-title">Fleet Manager</p>
+              <p class="brand-subtitle">Nowy Styl</p>
+            </div>
+          </div>
+          <nav class="nav">
+            <button class="nav-item active" data-view="map">Mapa</button>
+            <button class="nav-item" data-view="robots">Roboty</button>
+            <button class="nav-item" data-view="fields">Pola</button>
+            <button class="nav-item" data-view="packaging">Bufory</button>
+            <button class="nav-item" data-view="streams">Streamy</button>
+            <button class="nav-item" data-view="tasks">Zadania</button>
+            <button class="nav-item" data-view="faults">Awarie</button>
+          </nav>
+          <div class="sidebar-footer">
+            <button id="logout-btn" class="ghost-btn">Wyloguj</button>
+          </div>
+        </aside>
+
+        <section class="content">
+          <header class="content-header">
+            <div>
+              <h1 id="view-title">Mapa</h1>
+              <p id="view-subtitle">Graf, worksite i roboty w czasie rzeczywistym.</p>
+            </div>
+            <div class="status-pill">
+              <span class="status-dot"></span>
+              <span id="session-user">admin</span>
+            </div>
+          </header>
+
+          <div class="panel-stack">
+            <section id="view-map" class="panel active">
+              <div class="panel-header">
+                <div>
+                  <h2>Mapa procesu</h2>
+                  <p>Graf polaczen, worksite oraz pozycje robotow.</p>
+                </div>
+                <div class="panel-actions">
+                  <div class="legend">
+                    <span class="legend-item">
+                      <span class="legend-dot filled"></span> Filled
+                    </span>
+                    <span class="legend-item">
+                      <span class="legend-dot empty"></span> Unfilled
+                    </span>
+                    <span class="legend-item">
+                      <span class="legend-dot robot"></span> Robot
+                    </span>
+                    <span class="legend-item">
+                      <span class="legend-dot blocked"></span> Blocked
+                    </span>
+                    <span class="legend-item">
+                      <span class="legend-dot obstacle"></span> Przeszkoda
+                    </span>
+                  </div>
+                  <div class="map-actions">
+                    <button id="fit-view-btn" class="ghost-btn small">Dopasuj</button>
+                    <button id="reset-view-btn" class="ghost-btn small">Reset view</button>
+                    <div class="help-tip" tabindex="0" aria-label="Skroty mapy">
+                      ?
+                      <div class="help-tooltip">
+                        <p class="help-title">Skroty mapy</p>
+                        <p>Kolo: zoom</p>
+                        <p>Przeciagnij: pan</p>
+                        <p>+: zoom in, -: zoom out</p>
+                        <p>0: reset</p>
+                        <p>Mini mapa: przeciagnij</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div id="nav-controls" class="nav-controls hidden">
+                <div class="nav-controls-info">
+                  Nawigacja:
+                  <span id="nav-controls-name">--</span>
+                </div>
+                <div class="nav-controls-actions">
+                  <button id="nav-controls-pause" class="ghost-btn small">Pauzuj</button>
+                  <button id="nav-controls-stop" class="ghost-btn small danger">Zakoncz</button>
+                </div>
+              </div>
+              <div id="manual-drive" class="manual-drive hidden">
+                <div>
+                  <div class="manual-drive-title">Sterowanie reczne</div>
+                  <div class="manual-drive-meta">
+                    Robot: <span id="manual-drive-robot">--</span>
+                  </div>
+                  <div class="manual-drive-hint">WASD / strzalki</div>
+                </div>
+                <button id="manual-drive-toggle" class="ghost-btn small">Wlacz sterowanie</button>
+              </div>
+              <div class="map-wrap">
+                <svg id="map-svg" aria-label="Mapa"></svg>
+                <div id="worksite-menu" class="worksite-menu hidden">
+                  <button data-group="occupancy" data-value="filled">Filled</button>
+                  <button data-group="occupancy" data-value="empty">Unfilled</button>
+                  <div class="worksite-menu-divider"></div>
+                  <button data-group="blocked" data-value="true">Blocked</button>
+                  <button data-group="blocked" data-value="false">Unblocked</button>
+                </div>
+                <div id="manual-menu" class="worksite-menu manual-menu hidden">
+                  <div class="manual-menu-title">
+                    Manual: <span id="manual-menu-robot">--</span>
+                  </div>
+                  <button data-action="goto">Jedz tutaj</button>
+                  <button data-action="load">Jedz + Load</button>
+                  <button data-action="unload">Jedz + Unload</button>
+                </div>
+                <div class="mini-map">
+                  <svg id="mini-map-svg" aria-label="Mini mapa"></svg>
+                </div>
+              </div>
+            </section>
+
+            <section id="view-robots" class="panel">
+              <div class="panel-header">
+                <div>
+                  <h2>Roboty</h2>
+                  <p>Lista robotow i statusy.</p>
+                </div>
+              </div>
+              <div id="robots-list" class="card-list"></div>
+            </section>
+
+            <section id="view-fields" class="panel">
+              <div class="panel-header">
+                <div>
+                  <h2>Pola</h2>
+                  <p>Worksite wedlug grup i aktualnych stanow.</p>
+                </div>
+              </div>
+              <div id="fields-list" class="card-list"></div>
+            </section>
+
+            <section id="view-packaging" class="panel">
+              <div class="panel-header">
+                <div>
+                  <h2>Bufor opakowan</h2>
+                  <p>Zarzadzanie typami opakowan oraz zapotrzebowaniem linii.</p>
+                </div>
+              </div>
+              <div class="packaging-grid">
+                <div id="buffer-grid" class="buffer-grid"></div>
+                <div class="card buffer-editor">
+                  <div class="card-title">Edycja komorki</div>
+                  <div id="buffer-editor" class="buffer-editor-body"></div>
+                </div>
+                <div class="card line-card">
+                  <div class="card-title">Zapotrzebowanie linii</div>
+                  <div id="line-requests" class="line-requests"></div>
+                </div>
+                <div class="card place-ops-card">
+                  <div class="card-title">Operacje miejsc</div>
+                  <div id="place-ops" class="buffer-editor-body"></div>
+                </div>
+              </div>
+            </section>
+
+            <section id="view-streams" class="panel">
+              <div class="panel-header">
+                <div>
+                  <h2>Streamy</h2>
+                  <p>Aktywne strumienie pracy.</p>
+                </div>
+              </div>
+              <div id="streams-list" class="card-list"></div>
+            </section>
+
+            <section id="view-tasks" class="panel">
+              <div class="panel-header">
+                <div>
+                  <h2>Zadania</h2>
+                  <p>Aktywne zadania w toku.</p>
+                </div>
+              </div>
+              <div id="tasks-list" class="card-list"></div>
+            </section>
+
+            <section id="view-faults" class="panel">
+              <div class="panel-header">
+                <div>
+                  <h2>Awarie i przeszkody</h2>
+                  <p>Symulowane problemy przy pobieraniu, odkladaniu i jezdzie.</p>
+                </div>
+              </div>
+              <div class="faults-grid">
+                <div class="card">
+                  <div class="card-title">Wybrany robot</div>
+                  <div class="fault-row">
+                    <label class="fault-label" for="fault-robot-select">Robot</label>
+                    <select id="fault-robot-select" class="fault-select"></select>
+                    <button id="fault-clear-block" class="ghost-btn small">Odblokuj robota</button>
+                  </div>
+                </div>
+                <div class="card">
+                  <div class="card-title">Problem przy pobieraniu</div>
+                  <div class="fault-actions">
+                    <button id="fault-pick-problem" class="ghost-btn small">Problem przy pobieraniu</button>
+                    <button id="fault-pick-robot-blocked" class="ghost-btn small danger">Robot zablokowany</button>
+                  </div>
+                </div>
+                <div class="card">
+                  <div class="card-title">Problem przy odkladaniu</div>
+                  <div class="fault-actions">
+                    <button id="fault-drop-problem" class="ghost-btn small">Problem przy odkladaniu</button>
+                  </div>
+                </div>
+                <div class="card">
+                  <div class="card-title">Problemy w trakcie jazdy</div>
+                  <div class="fault-actions">
+                    <button id="fault-drive-block" class="ghost-btn small danger">Przeszkoda (stop)</button>
+                    <button id="fault-drive-avoid" class="ghost-btn small">Przeszkoda (omijanie)</button>
+                    <button id="fault-clear-obstacles" class="ghost-btn small">Usun przeszkody</button>
+                  </div>
+                </div>
+              </div>
+            </section>
+          </div>
+        </section>
+      </section>
+    </main>
+
+    <script src="packaging_engine.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>
