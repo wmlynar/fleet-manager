@@ -33,6 +33,14 @@ Validates dispatch planning for S1-S5 from `pusta_kanwa_sanden.md` using
 npm --prefix /home/inovatica/seal/rds/fleet-manager run e2e-spec
 ```
 
+## E2E (two robots)
+
+Simulates two robots starting at different points and completing two supply tasks.
+
+```bash
+npm --prefix /home/inovatica/seal/rds/fleet-manager run e2e-two-robots
+```
+
 ## E2E (UI smoke)
 
 Starts the local server, validates core endpoints/assets, and checks the
