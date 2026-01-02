@@ -1,0 +1,25 @@
+{
+  "strategy": "nearest",
+  "robots": [
+    {
+      "id": "RB-01",
+      "name": "Robot 01",
+      "ref": "PICK-03",
+      "battery": 82,
+      "dispatchable": true,
+      "online": true,
+      "controlled": false,
+      "manualMode": false
+    },
+    {
+      "id": "RB-02",
+      "name": "Robot 02",
+      "ref": "PICK-04",
+      "battery": 74,
+      "dispatchable": true,
+      "online": true,
+      "controlled": false,
+      "manualMode": false
+    }
+  ]
+}

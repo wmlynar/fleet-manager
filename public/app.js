@@ -27,6 +27,15 @@
   const ROBOT_YIELD_DISTANCE = ROBOT_STOP_DISTANCE + 0.6;
   const ROBOT_YIELD_SPEED_FACTOR = 0.35;
   const TRAFFIC_LOOKAHEAD_S = 2.2;
+  const ROUTE_LOOKAHEAD = 0.7;
+  const ROUTE_SNAP_DISTANCE = 0.35;
+  const ROUTE_PROGRESS_EPS = 0.05;
+  const ROUTE_HEADING_EPS = 0.08;
+  const PATH_SAMPLE_STEP = 0.25;
+  const PATH_MIN_SAMPLES = 6;
+  const PATH_MAX_SAMPLES = 80;
+  const LINE_MATCH_MAX_DIST = 0.6;
+  const LINE_MATCH_ANGLE_DEG = 30;
   const ACTION_WAIT_MS = 900;
   const OBSTACLE_RADIUS = 0.8;
   const OBSTACLE_CLEARANCE = 0.25;
@@ -44,6 +53,14 @@
     d: "right"
   };
   const PackagingEngine = window.PackagingEngine || null;
+  const FleetDomain = window.FleetDomain || {};
+  const domainStore = FleetDomain.InMemoryStore
+    ? new FleetDomain.InMemoryStore({ robots: [], tasks: [] })
+    : null;
+  const robotRepo = FleetDomain.RobotRepository ? new FleetDomain.RobotRepository(domainStore) : null;
+  const taskRepo = FleetDomain.TaskRepository ? new FleetDomain.TaskRepository(domainStore) : null;
+  const robotService = FleetDomain.RobotService ? new FleetDomain.RobotService(robotRepo) : null;
+  const robotAllocator = FleetDomain.RobotAllocator ? new FleetDomain.RobotAllocator() : null;
 
   const viewMeta = {
     map: {
@@ -126,6 +143,7 @@
 
   let graphData = null;
   let workflowData = null;
+  let robotsConfig = null;
   let worksites = [];
   let robots = [];
   let tasks = [];
@@ -163,6 +181,7 @@
     keys: new Set()
   };
   let taskCounter = 1;
+  let navGraph = null;
   let obstacles = [];
   let obstacleIdSeq = 1;
   let obstacleLayer = null;
@@ -171,6 +190,33 @@
   let simLastTick = null;
 
   const svgNS = "http://www.w3.org/2000/svg";
+
+  const syncDomainState = () => {
+    if (!domainStore) return;
+    const state = domainStore.getState() || {};
+    const storedRobots = Array.isArray(state.robots) ? state.robots : [];
+    if (robots.length) {
+      const currentById = new Map(robots.map((robot) => [robot.id, robot]));
+      robots = storedRobots.map((stored) => {
+        const current = currentById.get(stored.id);
+        if (!current) return stored;
+        const merged = { ...current, ...stored };
+        if (current.pos) {
+          merged.pos = current.pos;
+        }
+        return merged;
+      });
+    } else {
+      robots = storedRobots;
+    }
+    tasks = Array.isArray(state.tasks) ? state.tasks : [];
+  };
+
+  if (domainStore) {
+    domainStore.subscribe(() => {
+      syncDomainState();
+    });
+  }
 
   const safeParse = (value) => {
     if (!value) return null;
@@ -182,6 +228,11 @@
   };
 
   const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
+
+  const distanceBetweenPoints = (a, b) => {
+    if (!a || !b) return Number.POSITIVE_INFINITY;
+    return Math.hypot(a.x - b.x, a.y - b.y);
+  };
 
   const distancePointToSegment = (point, a, b) => {
     const abx = b.x - a.x;
@@ -202,6 +253,112 @@
     const len = Math.hypot(dx, dy);
     if (len === 0) return { x: 0, y: 0 };
     return { x: dx / len, y: dy / len };
+  };
+
+  const distancePointToSegmentCoords = (px, py, ax, ay, bx, by) => {
+    const abx = bx - ax;
+    const aby = by - ay;
+    const apx = px - ax;
+    const apy = py - ay;
+    const abLenSq = abx * abx + aby * aby;
+    if (abLenSq === 0) {
+      return Math.hypot(px - ax, py - ay);
+    }
+    const t = clamp((apx * abx + apy * aby) / abLenSq, 0, 1);
+    const cx = ax + abx * t;
+    const cy = ay + aby * t;
+    return Math.hypot(px - cx, py - cy);
+  };
+
+  const toRad = (deg) => (deg * Math.PI) / 180;
+
+  const sampleBezierPoints = (p0, p1, p2, p3, samples) => {
+    const points = [];
+    for (let i = 0; i <= samples; i += 1) {
+      const t = i / samples;
+      const mt = 1 - t;
+      const mt2 = mt * mt;
+      const t2 = t * t;
+      const x =
+        mt2 * mt * p0.x +
+        3 * mt2 * t * p1.x +
+        3 * mt * t2 * p2.x +
+        t2 * t * p3.x;
+      const y =
+        mt2 * mt * p0.y +
+        3 * mt2 * t * p1.y +
+        3 * mt * t2 * p2.y +
+        t2 * t * p3.y;
+      points.push({ x, y });
+    }
+    return points;
+  };
+
+  const buildPolyline = (points) => {
+    const lengths = [0];
+    let total = 0;
+    for (let i = 1; i < points.length; i += 1) {
+      const dx = points[i].x - points[i - 1].x;
+      const dy = points[i].y - points[i - 1].y;
+      total += Math.hypot(dx, dy);
+      lengths.push(total);
+    }
+    const headings = points.map((pt, idx) => {
+      const next = points[idx + 1] || points[idx];
+      const prev = points[idx - 1] || points[idx];
+      const dx = next.x - prev.x;
+      const dy = next.y - prev.y;
+      if (dx === 0 && dy === 0) {
+        return 0;
+      }
+      return Math.atan2(dy, dx);
+    });
+    return { points, lengths, totalLength: total, headings };
+  };
+
+  const reversePolyline = (polyline) => {
+    const points = [...polyline.points].reverse();
+    const headings = [...polyline.headings]
+      .reverse()
+      .map((heading) => normalizeAngle(heading + Math.PI));
+    const total = polyline.totalLength;
+    const lengths = polyline.lengths.map((dist) => total - dist).reverse();
+    return { points, headings, lengths, totalLength: total };
+  };
+
+  const polylineAtDistance = (polyline, distance) => {
+    if (!polyline.points.length) {
+      return { x: 0, y: 0, heading: 0 };
+    }
+    if (distance <= 0) {
+      return {
+        x: polyline.points[0].x,
+        y: polyline.points[0].y,
+        heading: polyline.headings[0]
+      };
+    }
+    if (distance >= polyline.totalLength) {
+      const lastIdx = polyline.points.length - 1;
+      return {
+        x: polyline.points[lastIdx].x,
+        y: polyline.points[lastIdx].y,
+        heading: polyline.headings[lastIdx]
+      };
+    }
+    const lengths = polyline.lengths;
+    let idx = 0;
+    while (idx < lengths.length - 1 && lengths[idx + 1] < distance) {
+      idx += 1;
+    }
+    const segStart = lengths[idx];
+    const segEnd = lengths[idx + 1];
+    const ratio = segEnd === segStart ? 0 : (distance - segStart) / (segEnd - segStart);
+    const a = polyline.points[idx];
+    const b = polyline.points[idx + 1];
+    const x = a.x + (b.x - a.x) * ratio;
+    const y = a.y + (b.y - a.y) * ratio;
+    const heading = polyline.headings[idx];
+    return { x, y, heading };
   };
 
   const pointsEqual = (a, b) => {
@@ -298,18 +455,350 @@
     robot.heading = normalizeAngle(robot.heading + turnStep);
 
     const turnPenalty = computeTurnPenalty(diff);
-    const speedTarget = Math.max(0, desiredSpeed * turnPenalty);
-    const accel = speedTarget >= robot.speed ? ROBOT_ACCEL_MPS2 : ROBOT_DECEL_MPS2;
+    const speedTarget = desiredSpeed * turnPenalty;
+    const sameDirection = Math.sign(speedTarget) === Math.sign(robot.speed);
+    const accel =
+      sameDirection && Math.abs(speedTarget) > Math.abs(robot.speed)
+        ? ROBOT_ACCEL_MPS2
+        : ROBOT_DECEL_MPS2;
     robot.speed = approachValue(robot.speed, speedTarget, accel * dt);
 
     const distance = robot.speed * dt;
-    if (distance > 0) {
+    if (distance !== 0) {
       robot.pos = {
         x: robot.pos.x + Math.cos(robot.heading) * distance,
         y: robot.pos.y + Math.sin(robot.heading) * distance
       };
     }
     return { distance, headingDiff: diff };
+  };
+
+  const buildNavigationGraph = (graph) => {
+    if (!graph) return null;
+    const nodesById = new Map();
+    for (const node of graph.nodes || []) {
+      if (node && node.id && node.pos && Number.isFinite(node.pos.x) && Number.isFinite(node.pos.y)) {
+        nodesById.set(node.id, node);
+      }
+    }
+    const adjacency = new Map();
+    for (const nodeId of nodesById.keys()) {
+      adjacency.set(nodeId, []);
+    }
+    const edgesByKey = new Map();
+    const lineConstraints = [];
+    const angleThreshold = Math.cos(toRad(LINE_MATCH_ANGLE_DEG));
+
+    for (const line of graph.lines || []) {
+      if (!line || !line.startPos || !line.endPos) continue;
+      const props = line.props || {};
+      const directionPosX = props.directionPosX;
+      const directionPosY = props.directionPosY;
+      let dirStart = line.startPos;
+      let dirEnd = line.endPos;
+      if (Number.isFinite(directionPosX) && Number.isFinite(directionPosY)) {
+        const distStart = Math.hypot(directionPosX - line.startPos.x, directionPosY - line.startPos.y);
+        const distEnd = Math.hypot(directionPosX - line.endPos.x, directionPosY - line.endPos.y);
+        if (distStart < distEnd) {
+          dirStart = line.endPos;
+          dirEnd = line.startPos;
+        }
+      }
+      const dirVec = unitVector(dirEnd.x - dirStart.x, dirEnd.y - dirStart.y);
+      if (dirVec.x === 0 && dirVec.y === 0) continue;
+      lineConstraints.push({
+        startPos: line.startPos,
+        endPos: line.endPos,
+        dirVec,
+        driveBackward: Number(props.direction) < 0,
+        angleThreshold
+      });
+    }
+
+    const applyLineConstraints = (edgeStartPos, edgeEndPos, polyline) => {
+      if (!lineConstraints.length) {
+        return { hasConstraint: false, allowed: true, driveBackward: false };
+      }
+      const edgeMid = polylineAtDistance(polyline, polyline.totalLength * 0.5);
+      const edgeDir = unitVector(edgeEndPos.x - edgeStartPos.x, edgeEndPos.y - edgeStartPos.y);
+      let best = null;
+      let bestDot = -1;
+      for (const line of lineConstraints) {
+        const dist = distancePointToSegmentCoords(
+          edgeMid.x,
+          edgeMid.y,
+          line.startPos.x,
+          line.startPos.y,
+          line.endPos.x,
+          line.endPos.y
+        );
+        if (dist > LINE_MATCH_MAX_DIST) continue;
+        const dot = edgeDir.x * line.dirVec.x + edgeDir.y * line.dirVec.y;
+        if (Math.abs(dot) < line.angleThreshold) continue;
+        if (Math.abs(dot) > bestDot) {
+          bestDot = Math.abs(dot);
+          best = { dot, line };
+        }
+      }
+      if (!best) {
+        return { hasConstraint: false, allowed: true, driveBackward: false };
+      }
+      if (best.dot < 0) {
+        return { hasConstraint: true, allowed: false, driveBackward: false };
+      }
+      return { hasConstraint: true, allowed: true, driveBackward: best.line.driveBackward };
+    };
+
+    for (const edge of graph.edges || []) {
+      if (!edge || !edge.start || !edge.end) continue;
+      const startNode = nodesById.get(edge.start);
+      const endNode = nodesById.get(edge.end);
+      if (!startNode || !endNode) continue;
+      const startPos = edge.startPos ? edge.startPos : startNode.pos;
+      const endPos = edge.endPos ? edge.endPos : endNode.pos;
+      const controlPos1 = edge.controlPos1 || null;
+      const controlPos2 = edge.controlPos2 || null;
+      const roughDist = Math.hypot(endPos.x - startPos.x, endPos.y - startPos.y);
+      const samples = clamp(
+        Math.ceil(roughDist / PATH_SAMPLE_STEP),
+        PATH_MIN_SAMPLES,
+        PATH_MAX_SAMPLES
+      );
+      const points =
+        controlPos1 && controlPos2
+          ? sampleBezierPoints(startPos, controlPos1, controlPos2, endPos, samples)
+          : [startPos, endPos];
+      const polyline = buildPolyline(points);
+
+      const directionRaw = edge.props ? edge.props.direction : null;
+      const direction = Number.isFinite(Number(directionRaw)) ? Number(directionRaw) : null;
+      const allowForward = direction === 1 ? true : direction === 2 || direction === -1 ? false : true;
+      const allowReverse = direction === 2 || direction === -1 ? true : direction === 1 ? false : true;
+
+      const forwardConstraint = applyLineConstraints(startPos, endPos, polyline);
+      const reversed = reversePolyline(polyline);
+      const reverseConstraint = applyLineConstraints(endPos, startPos, reversed);
+
+      if (allowForward && forwardConstraint.allowed) {
+        edgesByKey.set(`${startNode.id}->${endNode.id}`, {
+          startId: startNode.id,
+          endId: endNode.id,
+          polyline,
+          driveBackward: forwardConstraint.driveBackward
+        });
+        adjacency.get(startNode.id)?.push({ to: endNode.id, cost: polyline.totalLength });
+      }
+      if (allowReverse && reverseConstraint.allowed) {
+        edgesByKey.set(`${endNode.id}->${startNode.id}`, {
+          startId: endNode.id,
+          endId: startNode.id,
+          polyline: reversed,
+          driveBackward: reverseConstraint.driveBackward
+        });
+        adjacency.get(endNode.id)?.push({ to: startNode.id, cost: reversed.totalLength });
+      }
+    }
+
+    return { nodesById, adjacency, edgesByKey };
+  };
+
+  const findNearestNavNode = (pos) => {
+    if (!navGraph || !pos) return null;
+    let best = null;
+    let bestDist = Infinity;
+    for (const node of navGraph.nodesById.values()) {
+      const dx = node.pos.x - pos.x;
+      const dy = node.pos.y - pos.y;
+      const dist = dx * dx + dy * dy;
+      if (dist < bestDist) {
+        bestDist = dist;
+        best = node;
+      }
+    }
+    return best;
+  };
+
+  const findShortestPath = (startId, endId) => {
+    if (!navGraph || !startId || !endId) return null;
+    if (startId === endId) return [startId];
+    const dist = new Map();
+    const prev = new Map();
+    const visited = new Set();
+    const queue = [{ id: startId, cost: 0 }];
+    dist.set(startId, 0);
+
+    while (queue.length) {
+      queue.sort((a, b) => a.cost - b.cost);
+      const current = queue.shift();
+      if (!current) break;
+      const nodeId = current.id;
+      if (visited.has(nodeId)) continue;
+      visited.add(nodeId);
+      if (nodeId === endId) break;
+      const neighbors = navGraph.adjacency.get(nodeId) || [];
+      neighbors.forEach((edge) => {
+        const nextCost = current.cost + edge.cost;
+        const known = dist.get(edge.to);
+        if (known === undefined || nextCost < known) {
+          dist.set(edge.to, nextCost);
+          prev.set(edge.to, nodeId);
+          queue.push({ id: edge.to, cost: nextCost });
+        }
+      });
+    }
+
+    if (!dist.has(endId)) return null;
+    const path = [];
+    let current = endId;
+    while (current) {
+      path.unshift(current);
+      if (current === startId) break;
+      current = prev.get(current);
+      if (!current) return null;
+    }
+    return path;
+  };
+
+  const buildSimpleSegment = (startPos, endPos) => {
+    const polyline = buildPolyline([startPos, endPos]);
+    return {
+      polyline,
+      totalLength: polyline.totalLength,
+      driveBackward: false
+    };
+  };
+
+  const getSegmentEndHeading = (segment) => {
+    if (!segment?.polyline?.headings?.length) return 0;
+    const heading = segment.polyline.headings[segment.polyline.headings.length - 1] || 0;
+    return segment.driveBackward ? normalizeAngle(heading + Math.PI) : heading;
+  };
+
+  const buildRoute = (startPos, targetPos, targetNodeId) => {
+    if (!navGraph || !startPos || !targetPos) return null;
+    const startNode = findNearestNavNode(startPos);
+    const endNode =
+      targetNodeId && navGraph.nodesById.has(targetNodeId)
+        ? navGraph.nodesById.get(targetNodeId)
+        : findNearestNavNode(targetPos);
+    if (!startNode || !endNode) return null;
+    const pathNodes = findShortestPath(startNode.id, endNode.id);
+    if (!pathNodes) return null;
+
+    const segments = [];
+    const startDist = Math.hypot(startPos.x - startNode.pos.x, startPos.y - startNode.pos.y);
+    if (startDist > ROUTE_SNAP_DISTANCE) {
+      segments.push(buildSimpleSegment(startPos, startNode.pos));
+    }
+    for (let i = 0; i < pathNodes.length - 1; i += 1) {
+      const fromId = pathNodes[i];
+      const toId = pathNodes[i + 1];
+      const edge = navGraph.edgesByKey.get(`${fromId}->${toId}`);
+      if (edge) {
+        segments.push({
+          polyline: edge.polyline,
+          totalLength: edge.polyline.totalLength,
+          driveBackward: edge.driveBackward
+        });
+      } else {
+        const fromNode = navGraph.nodesById.get(fromId);
+        const toNode = navGraph.nodesById.get(toId);
+        if (fromNode && toNode) {
+          segments.push(buildSimpleSegment(fromNode.pos, toNode.pos));
+        }
+      }
+    }
+    const endDist = Math.hypot(endNode.pos.x - targetPos.x, endNode.pos.y - targetPos.y);
+    if (endDist > ROBOT_ARRIVAL_DISTANCE) {
+      segments.push(buildSimpleSegment(endNode.pos, targetPos));
+    }
+
+    const finalHeading = segments.length ? getSegmentEndHeading(segments[segments.length - 1]) : 0;
+    const targetHeading = Number.isFinite(targetPos.angle) ? targetPos.angle : finalHeading;
+
+    return {
+      segments,
+      segmentIndex: 0,
+      segmentProgress: 0,
+      pathNodes,
+      finalTarget: { pos: { ...targetPos }, heading: targetHeading }
+    };
+  };
+
+  const alignRobotHeading = (robot, targetHeading, deltaMs) => {
+    if (!Number.isFinite(targetHeading)) return true;
+    ensureRobotMotion(robot);
+    const diff = normalizeAngle(targetHeading - robot.heading);
+    if (Math.abs(diff) <= ROUTE_HEADING_EPS) {
+      robot.heading = targetHeading;
+      robot.speed = 0;
+      return true;
+    }
+    applyKinematicMotion(robot, targetHeading, 0, deltaMs / 1000);
+    return false;
+  };
+
+  const getRouteNavTarget = (route) => {
+    if (!route || !route.segments || route.segmentIndex >= route.segments.length) return null;
+    const segment = route.segments[route.segmentIndex];
+    if (!segment) return null;
+    const lookahead = Math.min(segment.totalLength, route.segmentProgress + ROUTE_LOOKAHEAD);
+    const pose = polylineAtDistance(segment.polyline, lookahead);
+    return {
+      pos: { x: pose.x, y: pose.y },
+      heading: pose.heading,
+      driveBackward: segment.driveBackward,
+      remaining: segment.totalLength - route.segmentProgress,
+      segment
+    };
+  };
+
+  const advanceRouteProgress = (robot, route, deltaMs, navTarget) => {
+    if (!navTarget || !route) return false;
+    const dt = deltaMs / 1000;
+    const desiredHeading = navTarget.driveBackward
+      ? normalizeAngle(navTarget.heading + Math.PI)
+      : navTarget.heading;
+    let desiredSpeed = Math.min(ROBOT_SPEED_MPS, computeStoppingSpeed(navTarget.remaining));
+    if (navTarget.driveBackward) desiredSpeed = -desiredSpeed;
+    const traffic = getTrafficSpeedLimit(robot, Math.abs(desiredSpeed));
+    const limitedSpeed =
+      desiredSpeed === 0
+        ? 0
+        : Math.sign(desiredSpeed) * Math.min(Math.abs(desiredSpeed), traffic.speedLimit);
+    const motion = applyKinematicMotion(robot, desiredHeading, limitedSpeed, dt);
+    route.segmentProgress = Math.min(
+      navTarget.segment.totalLength,
+      route.segmentProgress + Math.abs(motion.distance)
+    );
+    if (navTarget.segment.totalLength - route.segmentProgress <= ROUTE_PROGRESS_EPS) {
+      const endPose = polylineAtDistance(navTarget.segment.polyline, navTarget.segment.totalLength);
+      robot.pos = { x: endPose.x, y: endPose.y };
+      route.segmentIndex += 1;
+      route.segmentProgress = 0;
+      return true;
+    }
+    return false;
+  };
+
+  const setRuntimeRoute = (runtime, robot, targetPos, targetNodeId) => {
+    if (!runtime) return;
+    runtime.target = targetPos ? { ...targetPos } : null;
+    runtime.targetHeading = targetPos && Number.isFinite(targetPos.angle) ? targetPos.angle : null;
+    runtime.route = null;
+    runtime.routeGoal = targetPos
+      ? { pos: { ...targetPos }, nodeId: targetNodeId || null }
+      : null;
+    runtime.avoidance = null;
+    if (!robot || !targetPos) return;
+    const route = buildRoute(robot.pos, targetPos, targetNodeId);
+    if (route) {
+      if (!route.segments.length && !Number.isFinite(targetPos.angle)) {
+        route.finalTarget.heading = robot.heading;
+      }
+      runtime.route = route;
+      runtime.targetHeading = route.finalTarget.heading;
+    }
   };
 
   const getMapCenter = () => {
@@ -961,18 +1450,35 @@
     }
 
     try {
-      const [graph, workflow, packaging] = await Promise.all([
+      const [graph, workflow, packaging, robotsCfg] = await Promise.all([
         fetchJson("/data/graph.json"),
         fetchJson("/data/workflow.json5"),
-        fetchJsonSafe("/data/packaging.json")
+        fetchJsonSafe("/data/packaging.json"),
+        fetchJsonSafe("/data/robots.json")
       ]);
       graphData = graph;
       workflowData = workflow;
       packagingConfig = packaging;
+      robotsConfig = robotsCfg;
+      if (robotAllocator && robotsConfig?.strategy) {
+        robotAllocator.setStrategy(robotsConfig.strategy);
+      }
+      navGraph = buildNavigationGraph(graphData);
       worksites = buildWorksites(workflowData);
       worksiteState = loadWorksiteState(worksites);
-      robots = buildRobots(graphData, worksites);
-      tasks = buildTasks();
+      const initialRobots = buildRobots(graphData, worksites, robotsConfig);
+      const initialTasks = buildTasks();
+      if (robotRepo) {
+        robotRepo.setAll(initialRobots);
+      } else {
+        robots = initialRobots;
+      }
+      if (taskRepo) {
+        taskRepo.setAll(initialTasks);
+      } else {
+        tasks = initialTasks;
+      }
+      syncDomainState();
       renderMap();
       renderRobots();
       renderManualDrivePanel();
@@ -1515,10 +2021,11 @@
     return ORDER_DESC;
   };
 
-  const getNextPickCandidate = (pickGroupId, order) => {
+  const getNextPickCandidate = (pickGroupId, order, reserved) => {
     const groupSites = sortWorksites(getGroupWorksites(pickGroupId), order);
     for (const site of groupSites) {
       const state = getWorksiteState(site.id);
+      if (reserved?.has(site.id)) continue;
       if (state.blocked) continue;
       if (state.occupancy === "filled") {
         return site;
@@ -1527,13 +2034,13 @@
     return null;
   };
 
-  const getNextDropCandidate = (dropGroups, order) => {
+  const getNextDropCandidate = (dropGroups, order, reserved) => {
     for (const groupId of dropGroups) {
       const groupSites = sortWorksites(getGroupWorksites(groupId), order);
       let blockedAhead = false;
       for (const site of groupSites) {
         const state = getWorksiteState(site.id);
-        if (state.blocked || state.occupancy === "filled") {
+        if (state.blocked || state.occupancy === "filled" || reserved?.has(site.id)) {
           blockedAhead = true;
           break;
         }
@@ -1610,13 +2117,24 @@
     localStorage.setItem(ROBOT_STATE_KEY, JSON.stringify(stored));
   };
 
-  const updateRobotState = (id, updates) => {
-    robots = robots.map((robot) => (robot.id === id ? { ...robot, ...updates } : robot));
+  const refreshRobotViews = () => {
     persistRobotState();
     renderRobots();
     updateRobotMarkers();
     renderNavControls();
     renderManualDrivePanel();
+  };
+
+  const updateRobotState = (id, updates) => {
+    if (robotRepo) {
+      if (updates && Object.keys(updates).length) {
+        robotRepo.update(id, updates);
+      }
+      syncDomainState();
+    } else {
+      robots = robots.map((robot) => (robot.id === id ? { ...robot, ...updates } : robot));
+    }
+    refreshRobotViews();
   };
 
   const syncFaultRobotSelect = () => {
@@ -1718,9 +2236,15 @@
       const nextPos = nextDrop.site.pos || resolvePointPosition(nextDrop.site.point);
       if (nextPos) {
         runtime.dropId = nextDrop.site.id;
+        runtime.dropNodeId = nextDrop.site.point || null;
         runtime.dropPos = { ...nextPos };
-        runtime.target = { ...nextPos };
         runtime.phase = "to_drop";
+        const robot = getRobotById(robotId);
+        if (robot) {
+          setRuntimeRoute(runtime, robot, runtime.dropPos, runtime.dropNodeId);
+        } else {
+          runtime.target = { ...nextPos };
+        }
         updateTask(runtime.taskId, { dropId: runtime.dropId, phase: "Reroute drop" });
         updateRobotState(robotId, { activity: "Reroute drop" });
         return true;
@@ -1733,11 +2257,12 @@
     return Boolean(addObstacleForRobot(robotId, mode));
   };
 
-  const buildRobots = (graph, worksiteList) => {
+  const buildRobots = (graph, worksiteList, config) => {
     const worksiteIndex = new Map(worksiteList.map((site) => [site.id, site.pos]));
     const nodeIndex = new Map((graph?.nodes || []).map((node) => [node.id, node.pos]));
 
-    const resolvePos = (ref) => {
+    const resolvePos = (ref, fallbackPos) => {
+      if (fallbackPos && typeof fallbackPos === "object") return fallbackPos;
       if (worksiteIndex.has(ref)) return worksiteIndex.get(ref);
       if (nodeIndex.has(ref)) return nodeIndex.get(ref);
       return worksiteList[0]?.pos || { x: 0, y: 0 };
@@ -1752,7 +2277,7 @@
         task: null,
         activity: "Idle",
         ref: "PICK-03",
-        pos: resolvePos("PICK-03"),
+        pos: resolvePos("PICK-03", null),
         heading: 0,
         speed: 0,
         dispatchable: true,
@@ -1762,7 +2287,31 @@
       }
     ];
 
-    return loadRobotState(baseRobots);
+    const configRobots = (config?.robots || []).map((robot, index) => {
+      const id = robot.id || `RB-${String(index + 1).padStart(2, "0")}`;
+      const name = robot.name || `Robot ${String(index + 1).padStart(2, "0")}`;
+      const ref = robot.ref || robot.point || robot.start || "PICK-03";
+      const pos = resolvePos(ref, robot.pos);
+      return {
+        id,
+        name,
+        battery: Number.isFinite(robot.battery) ? robot.battery : 80,
+        blocked: Boolean(robot.blocked),
+        task: null,
+        activity: "Idle",
+        ref,
+        pos,
+        heading: Number.isFinite(robot.heading) ? robot.heading : 0,
+        speed: Number.isFinite(robot.speed) ? robot.speed : 0,
+        dispatchable: robot.dispatchable !== false,
+        online: robot.online !== false,
+        controlled: Boolean(robot.controlled),
+        manualMode: Boolean(robot.manualMode)
+      };
+    });
+
+    const robotsToUse = configRobots.length ? configRobots : baseRobots;
+    return loadRobotState(robotsToUse);
   };
 
   const buildTasks = () => [];
@@ -1895,6 +2444,14 @@
     delete runtime.wasPaused;
     runtime.mode = runtime.mode || "auto";
     runtime.paused = wasPaused;
+    const robot = getRobotById(robotId);
+    if (
+      robot &&
+      runtime.routeGoal &&
+      ["to_pick", "to_drop", "to_park"].includes(runtime.phase)
+    ) {
+      setRuntimeRoute(runtime, robot, runtime.routeGoal.pos, runtime.routeGoal.nodeId);
+    }
     robotRuntime.set(robotId, runtime);
     if (runtime.taskId) {
       updateTask(runtime.taskId, { status: runtime.paused ? "Paused" : "In progress" });
@@ -2159,16 +2716,21 @@
     if (!robot.online || robot.blocked) return;
     const targetPos = resolvePointPosition(pointId);
     if (!targetPos) return;
-    robotRuntime.set(robotId, {
+    const runtime = {
       mode: "manual",
       phase: "manual_move",
       target: { ...targetPos },
+      targetHeading: null,
+      route: null,
+      routeGoal: null,
       targetPointId: pointId,
       manualAction,
       waitUntil: null,
       paused: false
-    });
-    updateRobotState(robotId, { activity: getRuntimeActivity(robotRuntime.get(robotId)) });
+    };
+    setRuntimeRoute(runtime, robot, targetPos, pointId);
+    robotRuntime.set(robotId, runtime);
+    updateRobotState(robotId, { activity: getRuntimeActivity(runtime) });
   };
 
   const issueManualCommand = (robotId, pointId, actionKey) => {
@@ -2226,13 +2788,25 @@
       phase: "To pick",
       createdAt: Date.now()
     };
-    tasks = [task, ...tasks].slice(0, 50);
+    if (taskRepo) {
+      taskRepo.add(task);
+      const limited = taskRepo.list().slice(0, 50);
+      taskRepo.setAll(limited);
+      syncDomainState();
+    } else {
+      tasks = [task, ...tasks].slice(0, 50);
+    }
     renderTasks();
     return task;
   };
 
   const updateTask = (taskId, updates) => {
-    tasks = tasks.map((task) => (task.id === taskId ? { ...task, ...updates } : task));
+    if (taskRepo) {
+      taskRepo.update(taskId, updates);
+      syncDomainState();
+    } else {
+      tasks = tasks.map((task) => (task.id === taskId ? { ...task, ...updates } : task));
+    }
     renderTasks();
   };
 
@@ -2281,48 +2855,94 @@
     });
   };
 
-  const attemptStreamDispatch = () => {
-    if (!packagingConfig?.streams?.length || !PackagingEngine) return;
-    const robot = robots.find((item) => canDispatchRobot(item));
-    if (!robot) return;
-    const result = PackagingEngine.planStreamDispatch({
-      config: packagingConfig,
-      bufferState,
-      lineRequests
-    });
-    if (!result || !result.action) return;
-    const { action, nextBufferState, nextLineRequests } = result;
+  const getDispatchableRobots = () => robots.filter((robot) => canDispatchRobot(robot));
 
-    bufferState = nextBufferState;
-    lineRequests = nextLineRequests;
-    persistBufferState();
-    persistLineRequests();
-    renderBufferGrid();
-    renderLineRequests();
-    renderStreams();
-
-    const pickPos = resolvePointPosition(action.pickPoint);
-    const dropPos = resolvePointPosition(action.dropPoint);
-    if (!pickPos || !dropPos) return;
-
-    const task = createTask({
-      streamId: action.streamId,
-      robotId: robot.id,
-      pickId: action.pickId,
-      dropId: action.dropId,
-      kind: action.streamId,
-      meta: {
-        goodsType: action.goodsType,
-        lineId: action.lineId,
-        bufferCell: action.bufferCell,
-        targetBufferCell: action.targetBufferCell
+  const selectRobotForDispatch = (availableRobots, context) => {
+    if (!availableRobots.length) return null;
+    if (robotAllocator) {
+      return robotAllocator.select(availableRobots, context);
+    }
+    const targetPos = context?.targetPos || context?.pickPos || context?.dropPos || null;
+    if (!targetPos) return availableRobots[0];
+    let best = null;
+    let bestDist = Number.POSITIVE_INFINITY;
+    availableRobots.forEach((robot) => {
+      if (!robot?.pos) return;
+      const dist = distanceBetweenPoints(robot.pos, targetPos);
+      if (dist < bestDist) {
+        bestDist = dist;
+        best = robot;
       }
     });
-    assignTaskToRobot(robot, task, pickPos, dropPos);
+    return best || availableRobots[0];
+  };
+
+  const getActiveTaskRefs = () => {
+    const activeTasks = tasks.filter(
+      (task) => task.status !== "Completed" && task.status !== "Cancelled"
+    );
+    return {
+      pickIds: new Set(activeTasks.map((task) => task.pickId).filter(Boolean)),
+      dropIds: new Set(activeTasks.map((task) => task.dropId).filter(Boolean))
+    };
+  };
+
+  const dispatchStreamTasks = () => {
+    if (!packagingConfig?.streams?.length || !PackagingEngine) return;
+    let available = getDispatchableRobots().filter((robot) => robot.pos);
+    if (!available.length) return;
+    let updatedState = false;
+    let loopGuard = available.length;
+
+    while (available.length && loopGuard > 0) {
+      loopGuard -= 1;
+      const result = PackagingEngine.planStreamDispatch({
+        config: packagingConfig,
+        bufferState,
+        lineRequests
+      });
+      if (!result || !result.action) break;
+      const { action, nextBufferState, nextLineRequests } = result;
+      const pickPos = resolvePointPosition(action.pickPoint);
+      const dropPos = resolvePointPosition(action.dropPoint);
+      if (!pickPos || !dropPos) break;
+      const robot = selectRobotForDispatch(available, { pickPos, dropPos });
+      if (!robot) break;
+
+      bufferState = nextBufferState;
+      lineRequests = nextLineRequests;
+      updatedState = true;
+
+      const task = createTask({
+        streamId: action.streamId,
+        robotId: robot.id,
+        pickId: action.pickId,
+        dropId: action.dropId,
+        kind: action.streamId,
+        meta: {
+          goodsType: action.goodsType,
+          lineId: action.lineId,
+          bufferCell: action.bufferCell,
+          targetBufferCell: action.targetBufferCell
+        }
+      });
+      assignTaskToRobot(robot, task, pickPos, dropPos);
+      available = available.filter((item) => item.id !== robot.id);
+    }
+
+    if (updatedState) {
+      persistBufferState();
+      persistLineRequests();
+      renderBufferGrid();
+      renderLineRequests();
+      renderStreams();
+    }
   };
 
   const assignTaskToRobot = (robot, task, pickPos, dropPos) => {
-    robotRuntime.set(robot.id, {
+    const pickSite = worksites.find((site) => site.id === task.pickId) || null;
+    const dropSite = worksites.find((site) => site.id === task.dropId) || null;
+    const runtime = {
       mode: "auto",
       phase: "to_pick",
       taskId: task.id,
@@ -2330,36 +2950,67 @@
       pickId: task.pickId,
       dropId: task.dropId,
       dropGroup: task.dropGroup || null,
+      pickNodeId: pickSite?.point || null,
+      dropNodeId: dropSite?.point || null,
       target: { ...pickPos },
+      targetHeading: null,
+      route: null,
+      routeGoal: null,
       dropPos: { ...dropPos },
       waitUntil: null,
       paused: false,
       avoidance: null,
       blockedReason: null
-    });
+    };
+    setRuntimeRoute(runtime, robot, pickPos, runtime.pickNodeId);
+    robotRuntime.set(robot.id, runtime);
     updateRobotState(robot.id, { task: task.id, activity: "To pick" });
   };
 
-  const attemptDispatch = () => {
+  const dispatchWorkflowTasks = () => {
     if (packagingConfig?.streams?.length) return;
     if (!workflowData?.streams?.length) return;
     const stream = workflowData.streams[0];
     const dropOrder = getDropOrder(stream);
-    const pickCandidate = getNextPickCandidate(stream.pick_group, ORDER_ASC);
-    const dropCandidate = getNextDropCandidate(stream.drop_group_order || [], dropOrder);
-    if (!pickCandidate || !dropCandidate) return;
+    let available = getDispatchableRobots().filter((robot) => robot.pos);
+    if (!available.length) return;
+    const dropGroups = stream.drop_group_order || [];
+    const reserved = getActiveTaskRefs();
+    const reservedPicks = new Set(reserved.pickIds);
+    const reservedDrops = new Set(reserved.dropIds);
+    let loopGuard = available.length;
 
-    const robot = robots.find((item) => canDispatchRobot(item));
-    if (!robot) return;
+    while (available.length && loopGuard > 0) {
+      loopGuard -= 1;
+      const pickCandidate = getNextPickCandidate(stream.pick_group, ORDER_ASC, reservedPicks);
+      const dropCandidate = getNextDropCandidate(dropGroups, dropOrder, reservedDrops);
+      if (!pickCandidate || !dropCandidate) break;
+      const robot = selectRobotForDispatch(available, {
+        pickPos: pickCandidate.pos,
+        dropPos: dropCandidate.site.pos
+      });
+      if (!robot) break;
+      reservedPicks.add(pickCandidate.id);
+      reservedDrops.add(dropCandidate.site.id);
 
-    const task = createTask({
-      streamId: stream.id,
-      robotId: robot.id,
-      pickId: pickCandidate.id,
-      dropId: dropCandidate.site.id,
-      dropGroup: dropCandidate.groupId
-    });
-    assignTaskToRobot(robot, task, pickCandidate.pos, dropCandidate.site.pos);
+      const task = createTask({
+        streamId: stream.id,
+        robotId: robot.id,
+        pickId: pickCandidate.id,
+        dropId: dropCandidate.site.id,
+        dropGroup: dropCandidate.groupId
+      });
+      assignTaskToRobot(robot, task, pickCandidate.pos, dropCandidate.site.pos);
+      available = available.filter((item) => item.id !== robot.id);
+    }
+  };
+
+  const dispatchAvailableRobots = () => {
+    if (packagingConfig?.streams?.length) {
+      dispatchStreamTasks();
+      return;
+    }
+    dispatchWorkflowTasks();
   };
 
   const moveRobotToward = (robot, target, deltaMs, maxSpeed) => {
@@ -2429,27 +3080,43 @@
       applyKinematicMotion(robot, robot.heading, 0, dt);
       return { arrived: false, blocked: true, diverted: false };
     }
-    if (!runtime.target) {
+
+    const routeTarget = runtime.route ? getRouteNavTarget(runtime.route) : null;
+    const targetPos = runtime.avoidance
+      ? runtime.avoidance.waypoint
+      : routeTarget
+        ? routeTarget.pos
+        : runtime.route
+          ? runtime.route.finalTarget?.pos
+          : runtime.target;
+
+    if (!targetPos) {
+      if (runtime.route) {
+        const aligned = alignRobotHeading(robot, runtime.route.finalTarget?.heading, deltaMs);
+        if (aligned) {
+          runtime.route = null;
+          runtime.targetHeading = null;
+          return { arrived: true, blocked: false, diverted: false };
+        }
+        return { arrived: false, blocked: false, diverted: false };
+      }
       applyKinematicMotion(robot, robot.heading, 0, dt);
       return { arrived: true, blocked: false, diverted: false };
     }
 
+    runtime.target = { ...targetPos };
     const ignoreId = runtime.avoidance ? runtime.avoidance.obstacleId : null;
-    const obstacle = findObstacleOnPath(robot.pos, runtime.target, ignoreId);
+    const obstacle = findObstacleOnPath(robot.pos, targetPos, ignoreId);
     if (obstacle) {
-      if (obstacle.mode === "avoid") {
-        if (!runtime.avoidance || runtime.avoidance.obstacleId !== obstacle.id) {
-          const waypoint = computeAvoidWaypoint(robot.pos, runtime.target, obstacle);
-          if (waypoint) {
-            runtime.avoidance = {
-              obstacleId: obstacle.id,
-              waypoint,
-              finalTarget: runtime.target
-            };
-            runtime.target = waypoint;
-            updateRobotState(robot.id, { activity: "Avoiding obstacle" });
-            return { arrived: false, blocked: false, diverted: true };
-          }
+      if (obstacle.mode === "avoid" && !runtime.avoidance) {
+        const waypoint = computeAvoidWaypoint(robot.pos, targetPos, obstacle);
+        if (waypoint) {
+          runtime.avoidance = {
+            obstacleId: obstacle.id,
+            waypoint
+          };
+          updateRobotState(robot.id, { activity: "Avoiding obstacle" });
+          return { arrived: false, blocked: false, diverted: true };
         }
       } else if (!robot.blocked) {
         runtime.paused = true;
@@ -2463,19 +3130,50 @@
       }
     }
 
-    const result = moveRobotToward(robot, runtime.target, deltaMs, ROBOT_SPEED_MPS);
-    if (result.arrived && runtime.avoidance && pointsEqual(runtime.target, runtime.avoidance.waypoint)) {
-      runtime.target = runtime.avoidance.finalTarget;
-      runtime.avoidance = null;
-      updateRobotState(robot.id, { activity: getRuntimeActivity(runtime) });
+    if (runtime.avoidance) {
+      const result = moveRobotToward(robot, runtime.avoidance.waypoint, deltaMs, ROBOT_SPEED_MPS);
+      if (result.arrived) {
+        runtime.avoidance = null;
+        updateRobotState(robot.id, { activity: getRuntimeActivity(runtime) });
+      }
       return { arrived: false, blocked: false, diverted: true };
     }
-    return { arrived: result.arrived, blocked: false, diverted: false };
+
+    if (runtime.route) {
+      const navTarget = getRouteNavTarget(runtime.route);
+      if (navTarget) {
+        const advanced = advanceRouteProgress(robot, runtime.route, deltaMs, navTarget);
+        if (runtime.route.segmentIndex < runtime.route.segments.length) {
+          return { arrived: false, blocked: false, diverted: advanced };
+        }
+      }
+
+      const finalPos = runtime.route.finalTarget?.pos;
+      if (finalPos) {
+        const result = moveRobotToward(robot, finalPos, deltaMs, ROBOT_SPEED_MPS);
+        if (!result.arrived) {
+          return { arrived: false, blocked: false, diverted: false };
+        }
+      }
+      const aligned = alignRobotHeading(robot, runtime.route.finalTarget?.heading, deltaMs);
+      if (aligned) {
+        runtime.route = null;
+        runtime.targetHeading = null;
+        return { arrived: true, blocked: false, diverted: false };
+      }
+      return { arrived: false, blocked: false, diverted: false };
+    }
+
+    const result = moveRobotToward(robot, runtime.target, deltaMs, ROBOT_SPEED_MPS);
+    if (result.arrived) {
+      const aligned = alignRobotHeading(robot, runtime.targetHeading, deltaMs);
+      return { arrived: aligned, blocked: false, diverted: false };
+    }
+    return { arrived: false, blocked: false, diverted: false };
   };
 
   const tickSimulation = (deltaMs) => {
-    attemptStreamDispatch();
-    attemptDispatch();
+    dispatchAvailableRobots();
     const dt = deltaMs / 1000;
     applyManualDrive(deltaMs);
 
@@ -2527,7 +3225,7 @@
         if (Date.now() >= runtime.waitUntil) {
           setWorksiteOccupancy(runtime.pickId, "empty");
           runtime.phase = "to_drop";
-          runtime.target = { ...runtime.dropPos };
+          setRuntimeRoute(runtime, robot, runtime.dropPos, runtime.dropNodeId);
           updateRobotState(robotId, { activity: "To drop" });
           updateTask(runtime.taskId, { phase: "To drop" });
         }
@@ -2545,7 +3243,7 @@
           setWorksiteOccupancy(runtime.dropId, "filled");
           const park = parkingPoint || robot.pos;
           runtime.phase = "to_park";
-          runtime.target = { ...park };
+          setRuntimeRoute(runtime, robot, park, null);
           updateRobotState(robotId, { activity: "Parking" });
           updateTask(runtime.taskId, { phase: "Parking" });
         }
@@ -3089,6 +3787,12 @@
   const toggleRobotDispatchable = (id) => {
     const robot = robots.find((item) => item.id === id);
     if (!robot) return;
+    if (robotService) {
+      robotService.setDispatchable(id, !robot.dispatchable);
+      syncDomainState();
+      refreshRobotViews();
+      return;
+    }
     const next = !robot.dispatchable;
     const dispatchable = robot.online ? next : false;
     updateRobotState(id, { dispatchable });
@@ -3097,6 +3801,12 @@
   const toggleRobotControl = (id) => {
     const robot = robots.find((item) => item.id === id);
     if (!robot) return;
+    if (robotService) {
+      robotService.setControlled(id, !robot.controlled);
+      syncDomainState();
+      refreshRobotViews();
+      return;
+    }
     updateRobotState(id, { controlled: !robot.controlled });
   };
 

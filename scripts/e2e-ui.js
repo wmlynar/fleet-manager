@@ -108,6 +108,9 @@ async function run() {
     assert.ok(Array.isArray(packaging.streams), "Packaging streams should be an array");
     assert.ok(Array.isArray(packaging.lines), "Packaging lines should be an array");
 
+    const robots = await fetchJson(baseUrl, "/data/robots.json");
+    assert.ok(Array.isArray(robots.robots), "Robots config should include robots array");
+
     const graph = await fetchJson(baseUrl, "/data/graph.json");
     assert.ok(Array.isArray(graph.nodes), "Graph nodes should be an array");
     assert.ok(Array.isArray(graph.edges), "Graph edges should be an array");
